@@ -29,14 +29,17 @@ AVAILABLE ACTIONS:
 OBJECTIVE: WIN the game using as few actions as possible.
 """
 
+# Note: braces are doubled so they survive the later str.format() pass on
+# SIMPLE_PROMPT / COT_PROMPT. (This is a normal string, not an f-string, so the
+# f-string interpolation that inlines it into the templates does not consume them.)
 OUTPUT_FORMAT = """\
 RESPONSE FORMAT (strict JSON, no markdown, no extra text):
-{
+{{
   "action": "ACTION1" | "ACTION2" | "ACTION3" | "ACTION4" | "ACTION5" | "ACTION6" | "RESET",
   "x": <int 0-63, only if action is ACTION6>,
   "y": <int 0-63, only if action is ACTION6>,
   "reasoning": "<one short sentence explaining your choice>"
-}
+}}
 """
 
 SIMPLE_PROMPT = f"""\

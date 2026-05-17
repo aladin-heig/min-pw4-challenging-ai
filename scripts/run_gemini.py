@@ -28,13 +28,29 @@ FRAMEWORK = ROOT / "external" / "ARC-AGI-3-Agents"
 sys.path.insert(0, str(FRAMEWORK))
 sys.path.insert(0, str(ROOT))
 
-# Import framework first so that `agents` resolves to the submodule.
-import agents as framework_agents  # noqa: E402  # the submodule's `agents/`
-from agents.swarm import Swarm  # noqa: E402
+# The framework's `agents/__init__.py` eagerly imports every LLM template
+# (langchain, smolagents, openai, ...), which we don't need. We bypass that by
+# pre-registering a minimal `agents` package in sys.modules before any
+# `agents.*` import is triggered. The framework's submodules (agent.py,
+# swarm.py, recorder.py, tracing.py) only need arc_agi + pydantic.
+import importlib  # noqa: E402
+import types  # noqa: E402
 
-# Now import our agent. The class must be a subclass of `agents.agent.Agent`,
-# so by importing it AFTER the framework, we ensure both refer to the same
-# base class object (otherwise Agent.__subclasses__() would not list it).
+_pkg = types.ModuleType("agents")
+_pkg.__path__ = [str(FRAMEWORK / "agents")]
+sys.modules["agents"] = _pkg
+
+# Now load the minimal submodules we need (this skips the __init__.py).
+agent_module = importlib.import_module("agents.agent")
+swarm_module = importlib.import_module("agents.swarm")
+Swarm = swarm_module.Swarm
+Agent = agent_module.Agent
+
+# Expose a minimal AVAILABLE_AGENTS dict on the fake package, used by Swarm.
+_pkg.AVAILABLE_AGENTS = {}  # type: ignore[attr-defined]
+
+# Import our agent. It subclasses `agents.agent.Agent` — same object we just
+# loaded — so Agent.__subclasses__() picks it up.
 from gemini_arc_agent import GeminiAgent, GeminiAgentCoT  # noqa: E402, F401
 
 logger = logging.getLogger("run_gemini")
@@ -131,8 +147,8 @@ def main() -> None:
     agent_cls.MODEL = args.model
     agent_key = agent_cls.__name__.lower()
 
-    # Make sure the agent is registered in the framework's AVAILABLE_AGENTS.
-    framework_agents.AVAILABLE_AGENTS[agent_key] = agent_cls
+    # Register the agent in the framework's AVAILABLE_AGENTS so Swarm can find it.
+    _pkg.AVAILABLE_AGENTS[agent_key] = agent_cls  # type: ignore[attr-defined]
 
     tags = [
         "gemini-vs-human",

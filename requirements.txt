@@ -1,6 +1,14 @@
+# Our own deps
 google-genai>=0.3
 python-dotenv>=1.0
 rich>=13.0
 matplotlib>=3.8
 requests>=2.31
 Pillow>=10.0
+
+# Minimal subset of the ARC-AGI-3-Agents framework's deps that we actually need
+# (we bypass the framework's __init__.py to avoid pulling langchain, smolagents,
+# openai, langgraph etc.)
+arc-agi>=0.9.1
+pydantic>=2.11
+numpy>=2.0

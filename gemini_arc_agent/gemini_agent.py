@@ -74,16 +74,29 @@ class GeminiAgent(Agent):
 
     def _build_prompt(self, latest_frame: FrameData) -> str:
         frame_text = self._render_frame_text(latest_frame.frame)
-        available = [a.name for a in (latest_frame.available_actions or [])] or [
-            a.name for a in GameAction if a is not GameAction.RESET
-        ]
         return SIMPLE_PROMPT.format(
             state=latest_frame.state.name,
             levels_completed=latest_frame.levels_completed,
             action_counter=self.action_counter,
-            available_actions=", ".join(available),
+            available_actions=", ".join(self._available_action_names(latest_frame)),
             frame_text=frame_text,
         )
+
+    @staticmethod
+    def _available_action_names(latest_frame: FrameData) -> list[str]:
+        raw = latest_frame.available_actions or []
+        names: list[str] = []
+        for a in raw:
+            if isinstance(a, GameAction):
+                names.append(a.name)
+            else:
+                try:
+                    names.append(GameAction.from_id(int(a)).name)
+                except (ValueError, TypeError):
+                    continue
+        if not names:
+            names = [a.name for a in GameAction if a is not GameAction.RESET]
+        return names
 
     @staticmethod
     def _render_frame_text(frame: list[list[list[int]]]) -> str:
@@ -225,9 +238,6 @@ class GeminiAgentCoT(GeminiAgent):
 
     def _build_prompt(self, latest_frame: FrameData) -> str:
         frame_text = self._render_frame_text(latest_frame.frame)
-        available = [a.name for a in (latest_frame.available_actions or [])] or [
-            a.name for a in GameAction if a is not GameAction.RESET
-        ]
         if self._action_history:
             history_lines = [
                 f"  step {h['step']}: {h['action']}"
@@ -243,7 +253,7 @@ class GeminiAgentCoT(GeminiAgent):
             state=latest_frame.state.name,
             levels_completed=latest_frame.levels_completed,
             action_counter=self.action_counter,
-            available_actions=", ".join(available),
+            available_actions=", ".join(self._available_action_names(latest_frame)),
             frame_text=frame_text,
             history=history,
         )
