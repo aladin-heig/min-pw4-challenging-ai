@@ -1,0 +1,14 @@
+.env
+__pycache__/
+*.pyc
+.venv/
+venv/
+results/
+report/figures/
+.DS_Store
+*.egg-info/
+.pytest_cache/
+
+# Local PDFs from the course
+WP4_MIN2026_Intelligence_in_AI.pdf
+WP4_MIN2026_Intelligence_in_AI.pdf:Zone.Identifier
