@@ -71,14 +71,17 @@ Current game state:
 Latest frame (the current grid):
 {{frame_text}}
 
-History of your recent actions and their effects:
+History of your recent actions and their effects. Each entry shows the action
+you took, why you chose it, and RESULT = what changed in the grid afterwards.
+"NO CHANGE" means the action had no visible effect (e.g. you walked into a wall
+and should try something else). "LEVEL UP" means you made real progress.
 {{history}}
 
 Think step by step BEFORE answering:
 1. OBSERVE: What do you see in the current grid? Identify distinct objects, colors, regions.
-2. HYPOTHESIZE: Based on what changed (or did not change) after your previous actions, what is your best current hypothesis about the rules of this game?
+2. HYPOTHESIZE: Look at the RESULT of each past action. If an action produced NO CHANGE, do not blindly repeat it. What is your best current hypothesis about the rules of this game?
 3. PLAN: What action would test or exploit that hypothesis to make progress toward winning?
-4. DECIDE: Pick exactly one action.
+4. DECIDE: Pick exactly one action (preferably one you have not already found to be useless).
 
 Put your reasoning inside the "reasoning" field of the JSON (keep it under 3 sentences).
 

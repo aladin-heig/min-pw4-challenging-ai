@@ -15,7 +15,9 @@ import logging
 import os
 import random
 import re
-from typing import Any, ClassVar
+import threading
+import time
+from typing import Any, ClassVar, Optional
 
 from arcengine import FrameData, GameAction, GameState
 from google import genai
@@ -30,6 +32,29 @@ logger = logging.getLogger(__name__)
 _VALID_ACTION_NAMES = {a.name for a in GameAction}
 
 
+class _RateLimiter:
+    """Token-free min-interval rate limiter, shared across agent threads.
+
+    Guarantees at most `max_per_minute` calls per rolling minute by enforcing a
+    minimum spacing between consecutive calls. Thread-safe because the framework
+    runs one agent per game in parallel threads, all hitting the same API quota.
+    """
+
+    def __init__(self, max_per_minute: int) -> None:
+        self._min_interval = 60.0 / max_per_minute
+        self._lock = threading.Lock()
+        self._next_allowed = 0.0
+
+    def wait(self) -> None:
+        with self._lock:
+            now = time.monotonic()
+            sleep_for = self._next_allowed - now
+            if sleep_for > 0:
+                time.sleep(sleep_for)
+                now = time.monotonic()
+            self._next_allowed = now + self._min_interval
+
+
 class GeminiAgent(Agent):
     """Gemini agent using a simple prompt (no CoT)."""
 
@@ -37,6 +62,14 @@ class GeminiAgent(Agent):
     MODEL: ClassVar[str] = os.environ.get("GEMINI_MODEL", "gemini-3.1-pro-preview")
     STRATEGY: ClassVar[str] = "simple"
     HISTORY_LIMIT: ClassVar[int] = 6  # last N actions kept in the prompt (CoT only)
+
+    # Free-tier rate limit (requests/minute). Override via GEMINI_RPM env var;
+    # e.g. gemini-3.1-flash-lite free tier allows 15 RPM.
+    RPM: ClassVar[int] = int(os.environ.get("GEMINI_RPM", "15"))
+
+    # Shared across all agent threads so the whole swarm respects one quota.
+    _rate_limiter: ClassVar[Optional[_RateLimiter]] = None
+    _rate_limiter_lock: ClassVar[threading.Lock] = threading.Lock()
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
@@ -62,6 +95,12 @@ class GeminiAgent(Agent):
         if latest_frame.state in (GameState.NOT_PLAYED, GameState.GAME_OVER):
             return self._reset_action()
 
+        # Attach the *result* of the previous action to its history entry
+        # (Option B): compare the grid we acted on with the grid we now observe.
+        # frames[-2] is the state the last action was chosen from; frames[-1] is
+        # the resulting state. Only meaningful once we have >= 2 frames.
+        self._update_last_result(frames, latest_frame)
+
         prompt = self._build_prompt(latest_frame)
         raw_text = self._call_gemini(prompt)
         parsed = self._parse_response(raw_text, latest_frame)
@@ -69,6 +108,21 @@ class GeminiAgent(Agent):
         action = self._to_game_action(parsed, latest_frame)
         self._record_history(action, parsed, latest_frame)
         return action
+
+    def _update_last_result(
+        self, frames: list[FrameData], latest_frame: FrameData
+    ) -> None:
+        """Record what the previous action changed, into the last history entry."""
+        if not self._action_history or len(frames) < 2:
+            return
+        before = frames[-2].frame
+        after = latest_frame.frame
+        result = self._grid_diff(before, after)
+        # Also surface level progress, the most important signal of success.
+        prev_levels = self._action_history[-1].get("levels_completed", 0)
+        if latest_frame.levels_completed > (prev_levels or 0):
+            result = f"LEVEL UP (now {latest_frame.levels_completed}); " + result
+        self._action_history[-1]["result"] = result
 
     # ---- prompt construction ------------------------------------------------
 
@@ -109,13 +163,54 @@ class GeminiAgent(Agent):
         grid = frame[-1]
         return "\n".join(" ".join(f"{c:2d}" for c in row) for row in grid)
 
+    @staticmethod
+    def _grid_diff(
+        before: list[list[list[int]]], after: list[list[list[int]]]
+    ) -> str:
+        """Compact textual summary of how the grid changed (Option B).
+
+        Returns a short phrase, not the full grids, to keep the prompt cheap.
+        """
+        if not before or not after:
+            return "no comparable grid"
+        b = before[-1]
+        a = after[-1]
+        if len(b) != len(a) or any(len(rb) != len(ra) for rb, ra in zip(b, a)):
+            return "grid size changed"
+
+        changed: list[tuple[int, int]] = []
+        for y, (rb, ra) in enumerate(zip(b, a)):
+            for x, (vb, va) in enumerate(zip(rb, ra)):
+                if vb != va:
+                    changed.append((x, y))
+
+        if not changed:
+            return "NO CHANGE (action had no visible effect)"
+
+        n = len(changed)
+        # Bounding box of the change gives the model a sense of *where*.
+        xs = [x for x, _ in changed]
+        ys = [y for _, y in changed]
+        bbox = f"x[{min(xs)}-{max(xs)}], y[{min(ys)}-{max(ys)}]"
+        return f"{n} cell(s) changed in region {bbox}"
+
     # ---- LLM call -----------------------------------------------------------
+
+    @classmethod
+    def _get_rate_limiter(cls) -> _RateLimiter:
+        # Lazily build a single shared limiter for the whole swarm.
+        with GeminiAgent._rate_limiter_lock:
+            if GeminiAgent._rate_limiter is None:
+                GeminiAgent._rate_limiter = _RateLimiter(cls.RPM)
+            return GeminiAgent._rate_limiter
 
     def _call_gemini(self, prompt: str) -> str:
         config = genai_types.GenerateContentConfig(
             temperature=0.2,
             response_mime_type="application/json",
         )
+        # Respect the free-tier rate limit before every call.
+        self._get_rate_limiter().wait()
         try:
             response = self._client.models.generate_content(
                 model=self.MODEL,
@@ -239,12 +334,17 @@ class GeminiAgentCoT(GeminiAgent):
     def _build_prompt(self, latest_frame: FrameData) -> str:
         frame_text = self._render_frame_text(latest_frame.frame)
         if self._action_history:
-            history_lines = [
-                f"  step {h['step']}: {h['action']}"
-                + (f" (x={h.get('x')},y={h.get('y')})" if "x" in h else "")
-                + f" — {h['reasoning']}"
-                for h in self._action_history
-            ]
+            history_lines = []
+            for h in self._action_history:
+                coords = f" (x={h.get('x')},y={h.get('y')})" if "x" in h else ""
+                # Result is filled in on the following turn (Option B); the most
+                # recent action may not have it yet.
+                result = h.get("result", "result pending")
+                history_lines.append(
+                    f"  step {h['step']}: {h['action']}{coords}"
+                    f" — chose because: {h['reasoning']}"
+                    f"\n      -> RESULT: {result}"
+                )
             history = "\n".join(history_lines)
         else:
             history = "  (no actions taken yet)"
