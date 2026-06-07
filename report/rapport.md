@@ -21,6 +21,8 @@ Le résultat publié par ARC Prize est frappant :
 | ARC-AGI-2 | ~100 % | ~50-70 % |
 | **ARC-AGI-3** | **~100 %** | **0 %** (GPT-5, Claude 4.6, Gemini 3) |
 
+À la sortie d'ARC-AGI-3, tous les modèles de pointe scoraient **0 %**. Depuis, le tout récent **Claude 4.8 Opus** est devenu le premier à franchir ce plancher, avec un score de **2 %** : un progrès réel, mais qui reste à des années-lumière des ~100 % humains, et confirme que le défi tient toujours.
+
 **Question évaluée dans ce travail :** un LLM de pointe (Gemini 3) est-il capable de *découvrir et exploiter* les règles d'un jeu ARC-AGI-3 inédit, c'est-à-dire de faire preuve de la flexibilité que Chollet identifie comme le coeur de l'intelligence ? Notre hypothèse, fondée sur le leaderboard officiel, est que **non**, et nous cherchons à le **reproduire nous-mêmes** plutôt qu'à le citer, puis à observer *comment* le modèle échoue.
 
 ---
@@ -175,17 +177,29 @@ Le jeu `lf52` montre un comportement légèrement plus varié (mélange de clics
 
 **`ka59` : la répétition stérile.** Le « joueur » (le petit carré vert avec centre blanc) est poussé encore et encore contre la barrière violette, sans que le modèle ne tente une autre approche.
 
-![Partie de Gemini sur le jeu ka59](report/figures/gifs/ka59.gif)
+![Partie de Gemini sur le jeu ka59](figures/gifs/ka59.gif)
 
 **`lp85` : le clic compulsif.** Gemini ne produit que des `ACTION6` (clics), sans jamais essayer de se déplacer ni tirer de conclusion de l'absence de progrès.
 
-![Partie de Gemini sur le jeu lp85](report/figures/gifs/lp85.gif)
+![Partie de Gemini sur le jeu lp85](figures/gifs/lp85.gif)
 
 **`ls20` : l'essai amélioré (CoT + résultat des actions).** Même avec la mémoire et le signal explicite « action sans effet », le joueur (carré orange et bleu) erre dans le labyrinthe et n'atteint jamais la sortie (cf. §3.4).
 
-![Partie de Gemini sur le jeu ls20](report/figures/gifs/ls20.gif)
+![Partie de Gemini sur le jeu ls20](figures/gifs/ls20.gif)
 
-*[Les GIFs des autres jeux (`lf52`, `cd82`, `r11l`, et `wa30` joué jusqu'au plafond de 80 actions) sont disponibles dans `report/figures/gifs/`.]*
+*[Les GIFs des autres jeux (`lf52`, `cd82`, `r11l`, et `wa30` joué jusqu'au plafond de 80 actions) sont disponibles dans `figures/gifs/`.]*
+
+#### Le même jeu `ls20`, joué par un humain et par un modèle plus récent
+
+Pour donner un point de comparaison direct, nous avons rejoué **nous-mêmes** le jeu `ls20` sur le site officiel, et récupéré la partie du modèle le plus récent au classement, **Claude 4.8 Opus**.
+
+**Humain (l'auteur) : 100 %.** Le labyrinthe est résolu sans difficulté, en explorant les actions puis en exploitant la règle découverte.
+
+![Partie humaine sur le jeu ls20](figures/gifs/ls20-aladin.gif)
+
+**Claude 4.8 Opus : 2 %.** Le modèle le mieux classé à ce jour sur ARC-AGI-3 progresse à peine. C'est, à la sortie de ce travail, le premier modèle à dépasser le 0 % historique, ce qui souligne par contraste l'ampleur de l'écart qui reste à combler.
+
+![Partie de Claude 4.8 Opus sur le jeu ls20](figures/gifs/ls20-4.8_opus.gif)
 
 ### 3.4 L'agent amélioré change-t-il quelque chose ? (essai CoT)
 
@@ -206,17 +220,21 @@ Autrement dit, **donner au modèle la preuve que ses actions sont inutiles ne su
 
 | Condition | Jeux | Niveaux franchis | Taux de réussite |
 |---|---|---|---|
+| **Humain** (l'auteur, jeu `ls20` rejoué) | 1 | tous | **100 %** |
 | **Humain** (baseline officielle ARC-AGI-3) | tous | tous | **~100 %** |
-| **Gemini 3.1 Pro** — `simple` (sans mémoire) | 5 | 0 | **0 %** |
-| **Gemini 3 Flash** — `simple`, budget complet (`wa30`) | 1 | 0 / 9 | **0 %** |
-| **Gemini 3.1 Flash-lite** — `cot` + résultat des actions (`ls20`) | 1 | 0 | **0 %** |
+| **Claude 4.8 Opus** (meilleur modèle au classement) | benchmark | quasi nul | **2 %** |
+| **Gemini 3.1 Pro**, `simple` sans mémoire | 5 | 0 | **0 %** |
+| **Gemini 3 Flash**, `simple` budget complet (`wa30`) | 1 | 0 / 9 | **0 %** |
+| **Gemini 3.1 Flash-lite**, `cot` + résultat des actions (`ls20`) | 1 | 0 | **0 %** |
+
+Le contraste est total : sur le **même jeu `ls20`**, l'auteur atteint 100 % quand notre agent Gemini reste à 0 %. Même le meilleur modèle public actuel, Claude 4.8 Opus, plafonne à 2 %.
 
 ---
 
 ## 4. Conclusions
 
 **Notre hypothèse est confirmée et le résultat du leaderboard officiel est reproduit :**
-Gemini 3, dans les deux variantes testées, n'a franchi **aucun niveau** d'aucun jeu ARC-AGI-3, là où un humain les résout quasi systématiquement.
+Gemini 3, dans les deux variantes testées, n'a franchi **aucun niveau** d'aucun jeu ARC-AGI-3. Le contraste est sans appel : sur le même jeu `ls20`, l'auteur (humain) atteint **100 %**, notre agent Gemini reste à **0 %**, et même le meilleur modèle public actuel, **Claude 4.8 Opus, plafonne à 2 %**. L'écart entre l'humain et la machine reste béant sur ce type de tâche.
 
 Mais le plus instructif n'est pas le score (0 %), c'est **la manière** d'échouer. Gemini ne se trompe pas dans un raisonnement complexe : il **ne raisonne pas du tout sur ses propres échecs**. Il répète la même action des dizaines de fois sans intégrer le fait qu'elle ne produit aucun progrès, et reste enfermé dans une seule modalité d'action (tout pousser à droite, ou tout cliquer). Or **inférer une règle à partir du feedback de l'environnement, et adapter sa stratégie quand elle échoue, est précisément la capacité de généralisation que Chollet place au coeur de l'intelligence**.
 
@@ -247,7 +265,7 @@ pip install -r requirements.txt
 git submodule update --init                       # framework ARC-AGI-3-Agents
 cp .env.example .env                              # remplir ARC_API_KEY + GEMINI_API_KEY
 uv run scripts/run_gemini.py --strategy simple --games 1 --model gemini-3.1-pro-preview
-uv run scripts/analyze_results.py                 # tableau + figures
+uv run scripts/make_gifs.py                       # GIFs des parties à partir des recordings
 ```
 
 Données brutes : fichiers `*.recording.jsonl` (un par jeu) et logs dans

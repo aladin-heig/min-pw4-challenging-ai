@@ -307,11 +307,36 @@ s.addText([
 ], { x: 5.75, y: 4.9, w: 6.5, h: 1.2, fontFace: BFONT, fontSize: 14 });
 
 // =======================================================================
-// SLIDE 8 — CONFIRMÉ PAR LE LEADERBOARD OFFICIEL (light)
+// SLIDE 8 — HUMAIN vs IA : MÊME JEU (light) — le contraste direct
 // =======================================================================
 s = pres.addSlide();
 s.background = { color: C.bgLight };
 badge(s, 0.6, 0.55, 5);
+s.addText("Même jeu ls20 : humain vs IA", { x: 1.25, y: 0.5, w: 11.3, h: 0.6, fontFace: HFONT, fontSize: 30, bold: true, color: C.ink, margin: 0, valign: "middle" });
+
+// left card: human
+s.addImage({ path: GIF("ls20-aladin"), x: 1.3, y: 1.65, w: 3.6, h: 4.05 });
+s.addText("Humain (l'auteur)", { x: 1.3, y: 5.75, w: 3.6, h: 0.4, fontFace: BFONT, fontSize: 15, bold: true, color: C.ink, align: "center" });
+
+// right card: Opus
+s.addImage({ path: GIF("ls20-4.8_opus"), x: 8.45, y: 1.65, w: 3.6, h: 4.05 });
+s.addText("Claude 4.8 Opus", { x: 8.45, y: 5.75, w: 3.6, h: 0.4, fontFace: BFONT, fontSize: 15, bold: true, color: C.ink, align: "center" });
+
+// center: the two scores stacked
+s.addText("100 %", { x: 5.0, y: 2.35, w: 3.3, h: 1.0, fontFace: HFONT, fontSize: 50, bold: true, color: C.green, align: "center" });
+s.addText("vs", { x: 5.0, y: 3.45, w: 3.3, h: 0.6, fontFace: HFONT, fontSize: 22, italic: true, color: C.muted, align: "center" });
+s.addText("2 %", { x: 5.0, y: 4.05, w: 3.3, h: 1.0, fontFace: HFONT, fontSize: 50, bold: true, color: C.red, align: "center" });
+
+s.addText("Le meilleur modèle public actuel passe à peine le 0 %. L'humain résout sans peine.", {
+  x: 1.25, y: 6.35, w: 11.3, h: 0.5, fontFace: HFONT, fontSize: 15, italic: true, color: C.muted, align: "center",
+});
+
+// =======================================================================
+// SLIDE 9 — CONFIRMÉ PAR LE LEADERBOARD OFFICIEL (light)
+// =======================================================================
+s = pres.addSlide();
+s.background = { color: C.bgLight };
+badge(s, 0.6, 0.55, 6);
 s.addText("Confirmé par le leaderboard officiel", { x: 1.25, y: 0.5, w: 11.3, h: 0.6, fontFace: HFONT, fontSize: 30, bold: true, color: C.ink, margin: 0, valign: "middle" });
 
 s.addText([
@@ -319,25 +344,31 @@ s.addText([
   { text: "reproduit nous-mêmes.", options: { bold: true, color: C.accent } },
 ], { x: 1.25, y: 1.55, w: 11, h: 0.7, fontFace: BFONT, fontSize: 18 });
 
-s.addText("Sur three.arcprize.org, les meilleurs modèles affichent tous 0 % :", {
-  x: 1.25, y: 2.4, w: 11, h: 0.5, fontFace: BFONT, fontSize: 16, color: C.muted,
+s.addText("À la sortie du benchmark, les meilleurs modèles affichaient tous 0 % :", {
+  x: 1.25, y: 2.35, w: 11, h: 0.5, fontFace: BFONT, fontSize: 16, color: C.muted,
 });
 
 // three big 0% cards
 const models = ["GPT-5", "Claude 4.6", "Gemini 3"];
 models.forEach((m, i) => {
   const x = 1.25 + i * 3.95;
-  s.addShape(pres.shapes.RECTANGLE, { x, y: 3.2, w: 3.6, h: 2.6, fill: { color: C.bg }, line: { type: "none" } });
-  s.addText("0 %", { x, y: 3.55, w: 3.6, h: 1.3, fontFace: HFONT, fontSize: 64, bold: true, color: C.red, align: "center" });
-  s.addText(m, { x, y: 4.95, w: 3.6, h: 0.5, fontFace: BFONT, fontSize: 18, bold: true, color: C.white, align: "center" });
+  s.addShape(pres.shapes.RECTANGLE, { x, y: 3.0, w: 3.6, h: 2.3, fill: { color: C.bg }, line: { type: "none" } });
+  s.addText("0 %", { x, y: 3.25, w: 3.6, h: 1.2, fontFace: HFONT, fontSize: 60, bold: true, color: C.red, align: "center" });
+  s.addText(m, { x, y: 4.5, w: 3.6, h: 0.5, fontFace: BFONT, fontSize: 17, bold: true, color: C.white, align: "center" });
 });
 
-s.addText("Le même résultat que le nôtre : aucune généralisation aux règles d'un jeu inédit.", {
-  x: 1.25, y: 6.15, w: 11, h: 0.6, fontFace: HFONT, fontSize: 16, italic: true, color: C.muted, align: "center",
+s.addText([
+  { text: "Depuis, Claude 4.8 Opus est le premier à franchir ce plancher : ", options: { color: C.ink } },
+  { text: "2 %.", options: { bold: true, color: C.accent } },
+  { text: "  Un progrès réel, mais l'écart avec les ~100 % humains reste béant.", options: { color: C.muted } },
+], { x: 1.25, y: 5.6, w: 11, h: 0.7, fontFace: BFONT, fontSize: 16 });
+
+s.addText("Le même résultat que le nôtre : la généralisation aux règles d'un jeu inédit reste hors de portée.", {
+  x: 1.25, y: 6.5, w: 11, h: 0.5, fontFace: HFONT, fontSize: 15, italic: true, color: C.muted, align: "center",
 });
 
 // =======================================================================
-// SLIDE 9 — CONCLUSION + RETOUR D'EXPÉRIENCE (dark)
+// SLIDE 10 — CONCLUSION + RETOUR D'EXPÉRIENCE (dark)
 // =======================================================================
 s = pres.addSlide();
 s.background = { color: C.bg };
