@@ -112,6 +112,11 @@ def main() -> None:
 
     setup_logging(ROOT / "results" / f"gemini_{args.strategy}" / "logs")
 
+    # Route the framework's per-game recordings to results/raw/ (one .recording.jsonl
+    # per game). The Recorder reads the directory from this env var, so it must be
+    # set before the Swarm is constructed below.
+    os.environ["RECORDINGS_DIR"] = str(ROOT / "results" / "raw")
+
     api_key = os.environ.get("ARC_API_KEY")
     if not api_key:
         sys.exit("ARC_API_KEY is not set (see .env.example)")

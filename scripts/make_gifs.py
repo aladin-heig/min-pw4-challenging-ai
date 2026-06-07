@@ -5,7 +5,7 @@ the official ARC 16-color palette, overlay a caption with the action Gemini chos
 at that step (read from the run log), and assemble the frames into a GIF.
 
 Usage:
-    uv run scripts/make_gifs.py                      # all recordings in the repo
+    uv run scripts/make_gifs.py                      # all recordings in results/raw/
     uv run scripts/make_gifs.py --game ka59          # one game
     uv run scripts/make_gifs.py --fps 2 --cell 6     # tweak speed / size
 """
@@ -22,6 +22,7 @@ from typing import Optional
 from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parents[1]
+RAW_DIR = ROOT / "results" / "raw"
 OUT_DIR = ROOT / "report" / "figures" / "gifs"
 
 # Official ARC 16-color palette (RGB), copied from the framework's
@@ -50,7 +51,7 @@ CAPTION_H = 46  # px reserved at the bottom for the caption
 
 def find_recordings(game: Optional[str]) -> list[Path]:
     pattern = f"{game}-*.recording.jsonl" if game else "*.recording.jsonl"
-    return sorted(ROOT.glob(pattern))
+    return sorted(RAW_DIR.glob(pattern))
 
 
 def game_prefix(path: Path) -> str:
