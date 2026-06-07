@@ -257,16 +257,3 @@ C'est précisément ce qui a motivé l'arrêt volontaire (Ctrl-C) et le choix de
 Malgré ses limites, l'expérience valait la peine d'être refaite par nous-mêmes plutôt que simplement citée : elle nous a permis de **manipuler concrètement le dispositif** (API, agent, format des grilles, contraintes de coût) et surtout d'**observer en direct** *comment* un modèle de pointe échoue (la répétition stérile, le clic compulsif, l'absence d'adaptation au feedback) ce qu'un simple chiffre « 0 % » sur un leaderboard ne révèle pas. Les benchmarks officiels nous confirment que ces modèles sont incapables de résoudre ces jeux ; nous l'avons vérifié et, surtout, nous avons compris *pourquoi*. Le projet répond ainsi pleinement à la question posée par le cours sur la part réelle d'« intelligence » dans l'IA actuelle.
 
 ---
-
-### Annexe — Pour reproduire
-
-```bash
-pip install -r requirements.txt
-git submodule update --init                       # framework ARC-AGI-3-Agents
-cp .env.example .env                              # remplir ARC_API_KEY + GEMINI_API_KEY
-uv run scripts/run_gemini.py --strategy simple --games 1 --model gemini-3.1-pro-preview
-uv run scripts/make_gifs.py                       # GIFs des parties à partir des recordings
-```
-
-Données brutes : fichiers `*.recording.jsonl` (un par jeu) et logs dans
-`results/gemini_simple/logs/`.

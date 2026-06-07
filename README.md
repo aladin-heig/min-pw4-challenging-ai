@@ -6,19 +6,90 @@ Cette expérience compare les performances de **Gemini 3.1** (Google AI Studio) 
 
 ## Setup
 
+Le projet déclare ses dépendances **à deux endroits équivalents** :
+
+- `pyproject.toml` — format PEP 621 (utilisé par `uv`, `pip` ≥ 21.3, `hatch`, `poetry`…).
+- `requirements.txt` — fichier pip classique, pour les setups sans uv.
+
+Les deux listes sont **maintenues en miroir** : modifier l'une sans mettre à jour l'autre est une régression. `uv.lock` est la source de vérité pour les versions exactes quand on utilise uv.
+
+### Pré-requis
+
+- Python ≥ 3.12
+- `git` (pour le submodule du framework).
+- Soit [`uv`](https://docs.astral.sh/uv/) (recommandé), soit `pip` + `venv` standards.
+
+### Option A — avec `uv` (recommandé)
+
+`uv` gère l'environnement virtuel, l'installation et le lockfile reproductible en une commande. `uv.lock` est versionné, donc tout le monde obtient exactement les mêmes versions.
+
 ```bash
-python -m venv .venv
-source .venv/bin/activate
+# 1. Récupérer le code + le submodule du framework
+git clone <url-du-repo> min-pw4-challenging-ai
+cd min-pw4-challenging-ai
+git submodule update --init --recursive
+
+# 2. Installer les dépendances (crée .venv automatiquement)
+uv sync                 # runtime uniquement (arc-agi, gemini, pillow, …)
+uv sync --group dev     # + matplotlib/rich pour le pipeline de figures
+
+# 3. Configurer les clés API
+cp .env.example .env
+# Éditer .env et remplir :
+#   ARC_API_KEY     -> https://three.arcprize.org
+#   GEMINI_API_KEY  -> https://aistudio.google.com
+```
+
+Commandes utiles :
+
+| Commande | Effet |
+| --- | --- |
+| `uv sync` | Installe / met à jour `.venv` à partir du `uv.lock`. |
+| `uv sync --group dev` | Ajoute les dépendances du groupe `dev`. |
+| `uv sync --upgrade` | Résout et met à jour le lockfile. |
+| `uv add <pkg>` | Ajoute une dépendance runtime et met à jour le lock. |
+| `uv add --group dev <pkg>` | Ajoute une dépendance de dev. |
+| `uv run <cmd>` | Exécute `<cmd>` dans l'environnement uv (sans `source` à taper). |
+| `uv lock` | Recalcule le lockfile sans toucher à `.venv`. |
+
+Exemples :
+
+```bash
+uv run python scripts/run_gemini.py --strategy cot --games 5
+uv run python scripts/make_gifs.py --game ka59
+```
+
+> `uv run` est l'équivalent moderne de `source .venv/bin/activate && <cmd>`, sans modifier le shell courant.
+
+### Option B — avec `pip` + `venv` (classique)
+
+Pour les setups qui n'utilisent pas uv, `pip` lit directement `pyproject.toml` (PEP 621) **ou** le `requirements.txt` fourni en miroir. Les deux fonctionnent ; choisissez celui qui s'intègre le mieux à votre chaîne d'outils.
+
+```bash
+# 1. Récupérer le code + le submodule du framework
+git clone <url-du-repo> min-pw4-challenging-ai
+cd min-pw4-challenging-ai
+git submodule update --init --recursive
+
+# 2. Créer l'environnement virtuel et installer les dépendances
+python3 -m venv .venv
+source .venv/bin/activate          # Linux / macOS
+# .venv\Scripts\activate           # Windows (PowerShell / cmd)
+
+# 2a. Avec pip + requirements.txt
 pip install -r requirements.txt
 
-# Cloner le framework officiel
-git submodule add https://github.com/arcprize/ARC-AGI-3-Agents external/ARC-AGI-3-Agents
+# 2b. Avec pip + pyproject.toml (équivalent, sans fichier requirements)
+pip install -e .
 
+# 3. Configurer les clés API
 cp .env.example .env
-# Remplir ARC_API_KEY (https://three.arcprize.org)
-# et GEMINI_API_KEY (https://aistudio.google.com)
-# Optionnel : ajuster GEMINI_MODEL et GEMINI_RPM (voir .env.example).
+# Éditer .env et remplir ARC_API_KEY et GEMINI_API_KEY.
 ```
+
+> **Note Windows** : `source .venv/bin/activate` n'est pas valide sous Windows. Utiliser `.venv\Scripts\activate` (cmd) ou `.venv\Scripts\Activate.ps1` (PowerShell). Le reste de la procédure est identique.
+>
+> **Note `matplotlib` / `rich`** : ces paquets ne sont utilisés que par le pipeline de figures du rapport, pas par les scripts de run. Avec `uv`, installez-les via `uv sync --group dev`. Avec `pip`, décommentez les deux dernières lignes de `requirements.txt` (ou exécutez `pip install matplotlib rich`).
 
 ## Variables d'environnement
 

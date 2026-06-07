@@ -1,12 +1,31 @@
 [project]
 name = "min-pw4-challenging-ai"
 version = "0.1.0"
+description = "Gemini-powered agent for the ARC-AGI-3 benchmark (HEIG-VD MIN2026 final project)."
 requires-python = ">=3.12"
 dependencies = [
     "google-genai>=0.3",
-    "matplotlib>=3.8",
-    "pillow>=10.0",
     "python-dotenv>=1.0",
     "requests>=2.31",
+    "pillow>=10.0",
+    # Minimal subset of ARC-AGI-3-Agents framework deps we actually use.
+    # We bypass the framework's `agents/__init__.py` to avoid pulling
+    # langchain / smolagents / openai / langgraph — see scripts/run_gemini.py.
+    "arc-agi>=0.9.1",
+    "pydantic>=2.11",
+    "numpy>=2.0",
+]
+
+[dependency-groups]
+dev = [
+    # Used by the report/figures pipeline (not by runtime code).
+    "matplotlib>=3.8",
     "rich>=13.0",
 ]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["gemini_arc_agent"]
